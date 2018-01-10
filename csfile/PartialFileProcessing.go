@@ -15,6 +15,8 @@ type FilePartialProcessing struct {
 	ThisSize int64    //当前处理的字节个数
 	Fornum   int      //需要循环的次数
 	OverDate int64    //最后一次循环处理的字节数
+	FileHead int64    //文件头大小
+	FileDate int64    //文件数据大小(去除文件头后文件数据大小)
 }
 
 func (file *FilePartialProcessing) ReadPartFile(buff []byte, i int) (err error) {
@@ -27,12 +29,12 @@ func (file *FilePartialProcessing) ReadPartFile(buff []byte, i int) (err error) 
 	CheckFile(err)
 
 	if i != file.Fornum-1 {
-		file.Pseek = file.PartSize * int64(i)
+		file.Pseek = file.PartSize*int64(i) + file.FileHead
 		file.ThisSize = file.PartSize
 		err = ReadPart(file.fd, file.Pseek, buff, file.ThisSize)
 		CheckFile(err)
 	} else {
-		file.Pseek = file.PartSize * int64(i)
+		file.Pseek = file.PartSize*int64(i) + file.FileHead
 		file.ThisSize = file.OverDate
 		err = ReadPart(file.fd, file.Pseek, buff, file.OverDate)
 		CheckFile(err)
@@ -44,10 +46,23 @@ func (file *FilePartialProcessing) ReadPartFile(buff []byte, i int) (err error) 
 	return
 }
 
+func (file *FilePartialProcessing) ReadFileHead(buff []byte) (err error) {
+
+	if file.FileHead > 0 {
+		err = ReadPart(file.fd, 0, buff, file.FileHead)
+		CheckFile(err)
+	} else {
+		err = fmt.Errorf("%s", "file.FileHead=0 文件头为0")
+	}
+
+	return
+}
+
 //部分处理文件初始化
 //参数1:文件名
 //参数2:每次文件的大小 当每次处理大小为0时，直接取文件大小处理，当小于0时引起恐慌
-func (file *FilePartialProcessing) InitProcessing(name string, partSize int64) {
+//参数3:文件头大小，如果不需要特别处理文件头，则可以赋值为0
+func (file *FilePartialProcessing) InitProcessing(name string, partSize int64, filehead int64) {
 
 	file.FileName = name
 
@@ -57,6 +72,8 @@ func (file *FilePartialProcessing) InitProcessing(name string, partSize int64) {
 
 	file.FileSize = file.GetFileSize() //得到文件大小
 
+	file.FileHead = filehead                      //文件头的大小
+	file.FileDate = file.FileSize - file.FileHead //文件数据大小(去除文件头后文件数据大小)
 	if partSize > 0 {
 		file.PartSize = partSize //每次处理的大小
 	} else if partSize == 0 {
@@ -65,13 +82,13 @@ func (file *FilePartialProcessing) InitProcessing(name string, partSize int64) {
 		panic("err: PartSize < 0 每次处理的字节大小小于0")
 	}
 
-	file.Fornum = int(file.FileSize / file.PartSize) //计算出需要循环的次数
-	if (file.FileSize % file.PartSize) > 0 {
+	file.Fornum = int(file.FileDate / file.PartSize) //计算出需要循环的次数
+	if (file.FileDate % file.PartSize) > 0 {
 		file.Fornum++
-		file.OverDate = file.FileSize - (file.PartSize * (int64(file.Fornum) - 1)) //计算出最后一次循环处理的字节数
+		file.OverDate = file.FileDate - (file.PartSize * (int64(file.Fornum) - 1)) //计算出最后一次循环处理的字节数
 	} else {
-		if file.PartSize == file.FileSize {
-			file.OverDate = file.FileSize
+		if file.PartSize == file.FileDate {
+			file.OverDate = file.FileDate
 		} else {
 			file.OverDate = 0
 		}
@@ -93,9 +110,18 @@ func ReadPart(fd *os.File, ret int64, buff []byte, Size int64) (err error) {
 		panic(err)
 	} else {
 		err = nil
-		return
 	}
-	//return
+
+	n := len(buff) //清理一下多余数据
+	if int64(n) > Size {
+		full := int64(n) - Size
+		var i int64 = 0
+		for i = 0; i < full; i++ {
+			buff[Size+i] = 0
+		}
+	}
+
+	return
 }
 
 //得到文件的字节大小
