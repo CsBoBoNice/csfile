@@ -28,19 +28,20 @@ func (file *FilePartialProcessing) ReadPartFile(buff []byte, i int) (err error) 
 	_, err = file.fd.Seek(0, 0)
 	CheckFile(err)
 
+	file.Pseek = file.PartSize*int64(i) + file.FileHead
+
 	if i != file.Fornum-1 {
-		file.Pseek = file.PartSize*int64(i) + file.FileHead
 		file.ThisSize = file.PartSize
 		err = ReadPart(file.fd, file.Pseek, buff, file.ThisSize)
 		CheckFile(err)
 	} else {
-		file.Pseek = file.PartSize*int64(i) + file.FileHead
 		file.ThisSize = file.OverDate
 		err = ReadPart(file.fd, file.Pseek, buff, file.OverDate)
 		CheckFile(err)
 	}
 	file.Pseek, err = file.fd.Seek(0, 1) //获得当前文件指针
 	CheckFile(err)
+
 	err = nil
 
 	return
