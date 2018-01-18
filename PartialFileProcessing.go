@@ -1,4 +1,4 @@
-package csfile
+package Csfile
 
 import (
 	"fmt"
@@ -88,11 +88,9 @@ func (file *FilePartialProcessing) InitProcessing(name string, partSize int64, f
 		file.Fornum++
 		file.OverDate = file.FileDate - (file.PartSize * (int64(file.Fornum) - 1)) //计算出最后一次循环处理的字节数
 	} else {
-		if file.PartSize == file.FileDate {
-			file.OverDate = file.FileDate
-		} else {
-			file.OverDate = 0
-		}
+
+		file.OverDate = file.PartSize
+
 	}
 
 }

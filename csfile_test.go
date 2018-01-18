@@ -1,19 +1,20 @@
-package main
+package Csfile
 
 import (
-	"PartialFileProcessing/csfile"
 	"fmt"
+	"testing"
 )
 
-func main() {
+func TestCsfile(t *testing.T) {
 	var err error
 	const PartSize = 64
 	//name := "E:/golang/GOPATH/src/filemaker/date.text"
 	//name := "E:/golang/GOPATH/src/PartialFileProcessing/123.txt"
-	name := "E:/golang/GOPATH/src/PartialFileProcessing/main.go"
+	//name := "E:/golang/GOPATH/src/PartialFileProcessing/main.go"
+	name := "E:/golang/csfioletext/main.go"
 	var Date []byte = make([]byte, PartSize)
-	var file csfile.FilePartialProcessing
-	file.InitProcessing(name, PartSize, 6) //初始化需要读的文件数据
+	var file FilePartialProcessing
+	file.InitProcessing(name, PartSize, 32) //初始化需要读的文件数据
 
 	fmt.Println(file)
 
@@ -33,11 +34,8 @@ func main() {
 	fmt.Printf("size=%d\n", file.FileSize)
 	fmt.Printf("OverDate=%d\n", file.OverDate)
 	fmt.Printf("nice code\n")
+	if err != nil {
+		t.Error("bad code! try again!\n")
+	}
 
 }
-
-func CheckFile(e error) {
-	if e != nil {
-		fmt.Printf("%s\n", e)
-	}
-} //1234567890
